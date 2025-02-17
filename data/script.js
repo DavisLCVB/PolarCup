@@ -8,7 +8,7 @@ const formatQuantity = (qty) => `${qty.toFixed(0)} ml`;
 function updateCoolingStatus(needsCooling, timeRemaining) {
     const statusElement = document.getElementById('cooling-status');
     const statusText = statusElement.querySelector('.status-text');
-    const coolingTime = document.getElementById('cooling-time');
+    const coolingTime = document.getElementById('time');
     
     statusElement.classList.remove('needs-cooling', 'cooling-active', 'optimal-temp');
     
@@ -40,11 +40,11 @@ async function updateData() {
             formatTemperature(data.temperature);
         
         // Actualizar cantidad
-        document.getElementById('quantity').textContent = 
-            formatQuantity(data.quantity);
+        document.getElementById('volume').textContent = 
+            formatQuantity(data.volume);
         
         // Actualizar estado de enfriamiento
-        updateCoolingStatus(data.needsCooling, data.coolingTimeRemaining);
+        updateCoolingStatus(data.needsCooling, data.time);
         
     } catch (error) {
         console.error('Error al obtener datos:', error);

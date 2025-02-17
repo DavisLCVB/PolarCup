@@ -8,15 +8,32 @@ void TemperatureSensor::setup(Variables* variables) {
   }
 }
 
+f32 TemperatureSensor::getTemperature() {
+  return mlx.readObjectTempC();
+}
+
 void WeightSensor::setup(Variables* variables) {
   this->variables = variables;
   scale.begin();
+  scale.tareA(0);
+}
+
+f32 WeightSensor::getWeight() {
+  return scale.readChannelBlocking(CHAN_A_GAIN_128);
+}
+
+f32 WeightSensor::getVolume() {
+  return getWeight() * 0.9982;
 }
 
 void FreezeSystem::setup(Variables* variables) {
   this->variables = variables;
   pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, HIGH);
+  digitalWrite(relayPin, LOW);
+}
+
+void FreezeSystem::switchFreeze(bool state) {
+  digitalWrite(relayPin, state);
 }
 
 void WebServer::setup(Variables* variables) {
@@ -34,6 +51,16 @@ void WebServer::setup(Variables* variables) {
   server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest* request) {
     Serial.println("Enviando script.js");
     request->send(SPIFFS, "/script.js", "text/javascript");
+  });
+  server.on("/data", HTTP_GET, [this](AsyncWebServerRequest* request) {
+    Serial.println("Enviando data");
+    String data = "{\"temperature\": " + String(this->variables->liqTemp) +
+                      ", \"volume\": " + String(this->variables->volume) +
+                      ", \"time\": " + String(this->variables->time) +
+                      ", \"needsCooling\": " + String(this->variables->needsCooling) +
+                      "}";
+    Serial.println(data);
+    request->send(200, "application/json", data);
   });
   server.begin();
 }
@@ -59,4 +86,14 @@ void PolarCup::setup() {
   webServer.setup(&variables);
 }
 
-void PolarCup::loop() {}
+void PolarCup::loop() {
+  variables.liqTemp = temperatureSensor.getTemperature();
+  variables.volume = weightSensor.getVolume();
+  variables.time = (variables.liqTemp - variables.optTemp) / variables.efficiency;
+  variables.needsCooling = variables.liqTemp > variables.optTemp;
+  if (variables.needsCooling) {
+    freezeSystem.switchFreeze(true);
+  } else {
+    freezeSystem.switchFreeze(false);
+  }
+}
