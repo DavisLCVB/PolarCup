@@ -2,8 +2,7 @@
 
 void TemperatureSensor::setup(Variables* variables) {
   this->variables = variables;
-  i2c.begin(sdaPin, sclPin, 400000);
-  if (!mlx.begin(0x5A, &i2c)) {
+  if (!mlx.begin()) {
     Serial.println("Error al iniciar el sensor de temperatura");
   }
 }
@@ -14,26 +13,63 @@ f32 TemperatureSensor::getTemperature() {
 
 void WeightSensor::setup(Variables* variables) {
   this->variables = variables;
-  scale.begin();
-  scale.tareA(0);
+  scale.begin(this->doutPin, this->sckPin);
+  f32 scaleVal = -0.92;
+  EEPROM.get(0, scaleVal);
+  Serial.print("Scale value: ");
+  Serial.println(scaleVal);
+  Serial.println("Press + or - to calibrate");
+  scale.set_scale(scaleVal);
+  delay(2000);
+  if (Serial.available()) {
+    char temp = Serial.read();
+    if (temp == '+' || temp == '-') {
+      calibrate();
+    }
+  }
 }
 
 f32 WeightSensor::getWeight() {
-  return scale.readChannelBlocking(CHAN_A_GAIN_128);
+  return scale.get_units(10);
 }
 
 f32 WeightSensor::getVolume() {
   return getWeight() * 0.9982;
 }
 
+void WeightSensor::calibrate() {
+  bool conf = true;
+  i64 adcLec;
+  scale.read();
+  scale.set_scale();
+  scale.tare(20);
+  Serial.println("Put the scale weigth");
+  delay(1000);
+  while (conf) {
+    adcLec = scale.get_value(100);
+    Serial.print("ADC lec: ");
+    Serial.println(adcLec);
+    f32 scaleVal = adcLec / variables->calWeigth;
+    EEPROM.put(0, scaleVal);
+    Serial.print("Calibration value: ");
+    Serial.println(scaleVal);
+    scale.set_scale(scaleVal);
+    delay(3000);
+    conf = false;
+  }
+}
+
 void FreezeSystem::setup(Variables* variables) {
   this->variables = variables;
-  pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, LOW);
+  pinMode(platePin, OUTPUT);
+  pinMode(disPin, OUTPUT);
+  digitalWrite(platePin, HIGH);
+  digitalWrite(disPin, LOW);
 }
 
 void FreezeSystem::switchFreeze(bool state) {
-  digitalWrite(relayPin, state);
+  digitalWrite(platePin, state ? LOW : HIGH);
+  digitalWrite(disPin, state ? HIGH : LOW);
 }
 
 void WebServer::setup(Variables* variables) {
@@ -55,10 +91,9 @@ void WebServer::setup(Variables* variables) {
   server.on("/data", HTTP_GET, [this](AsyncWebServerRequest* request) {
     Serial.println("Enviando data");
     String data = "{\"temperature\": " + String(this->variables->liqTemp) +
-                      ", \"volume\": " + String(this->variables->volume) +
-                      ", \"time\": " + String(this->variables->time) +
-                      ", \"needsCooling\": " + String(this->variables->needsCooling) +
-                      "}";
+                  ", \"volume\": " + String(this->variables->volume) +
+                  ", \"time\": " + String(this->variables->time) +
+                  ", \"needsCooling\": " + String(this->variables->needsCooling) + "}";
     Serial.println(data);
     request->send(200, "application/json", data);
   });
@@ -83,12 +118,18 @@ void WebServer::initWiFi() {
 }
 
 void PolarCup::setup() {
+  temperatureSensor.setup(&this->variables);
+  weightSensor.setup(&this->variables);
+  freezeSystem.setup(&this->variables);
   webServer.setup(&variables);
+  Serial.println("End Setup");
 }
 
 void PolarCup::loop() {
   variables.liqTemp = temperatureSensor.getTemperature();
-  variables.volume = weightSensor.getVolume();
+  variables.volume = weightSensor.getVolume() < 0
+                         ? 10
+                         : (weightSensor.getVolume() > 1000 ? 1000 : weightSensor.getVolume());
   variables.time = (variables.liqTemp - variables.optTemp) / variables.efficiency;
   variables.needsCooling = variables.liqTemp > variables.optTemp;
   if (variables.needsCooling) {

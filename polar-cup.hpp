@@ -1,6 +1,6 @@
 #ifndef POLAR_CUP_HPP
 #define POLAR_CUP_HPP
-#include <Adafruit_HX711.h>
+#include <HX711.h>
 #include <Adafruit_MLX90614.h>
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -11,12 +11,13 @@
 #include "types.hpp"
 
 struct Variables {
-  f32 optTemp{0.0};
-  f32 efficiency{0.0};
+  f32 optTemp{25.0};
+  f32 efficiency{0.5};
   f32 liqTemp{0.0};
   f32 weight{0.0};
   f32 volume{0.0};
   f32 time{0.0};
+  f32 calWeigth{213.0};
   bool needsCooling{false};
   const c8* ssid{"Davis"};
   const c8* password{"12345678"};
@@ -40,13 +41,14 @@ class WeightSensor {
  public:
   WeightSensor() = default;
   void setup(Variables* variables);
+  void calibrate();
   f32 getWeight();
   f32 getVolume();
 
  private:
   u8 doutPin = 4;
   u8 sckPin = 5;
-  Adafruit_HX711 scale = Adafruit_HX711(doutPin, sckPin);
+  HX711 scale;
   Variables* variables;
 };
 
@@ -57,7 +59,8 @@ class FreezeSystem {
   void switchFreeze(bool state);
 
  private:
-  u8 relayPin = 18;
+  u8 platePin = 18;
+  u8 disPin = 19;
   Variables* variables;
 };
 
