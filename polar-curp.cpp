@@ -117,11 +117,30 @@ void WebServer::initWiFi() {
   Serial.println("Conectado a WiFi");
 }
 
+void FirebaseDatabase::setup(Variables* variables) {
+  this->variables = variables;
+  config.api_key = this->variables->apiKey;
+  config.database_url = this->variables->databaseURL;
+
+  if (Firebase.singUp(&auth, &config)) {
+    this->singupOk = true;
+    Serial.println("Sing up ok");
+  } else {
+    Serial.printf("%s\n", config.signer.signupError.message.c_str());
+  }
+
+  config.token_status_callback = tokenStatusCallback;
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+}
+
 void PolarCup::setup() {
   temperatureSensor.setup(&this->variables);
   weightSensor.setup(&this->variables);
   freezeSystem.setup(&this->variables);
   webServer.setup(&variables);
+  firebaseDatabase.setup(&variables);
   Serial.println("End Setup");
 }
 
@@ -136,5 +155,28 @@ void PolarCup::loop() {
     freezeSystem.switchFreeze(true);
   } else {
     freezeSystem.switchFreeze(false);
+  }
+
+  if (Firebase.ready() && firebaseDatabase.singupOk &&
+      millis() - firebaseDatabase.sendDataPrevMillis > 3000) {
+    firebaseDatabase.sendDataPrevMillis = millis();
+    if (Firebase.RDTB.setFloat(&firebaseDatabase.fbdo, firebaseDatabase.temperaturePath,
+                               variables.liqTemp)) {
+      Serial.println("Temperature Updated");
+    } else {
+      Serial.println("Error updating temperature");
+    }
+    if (Firebase.RDTB.setFloat(&firebaseDatabase.fbdo, firebaseDatabase.volumePath,
+                               variables.volume)) {
+      Serial.println("Volume Updated");
+    } else {
+      Serial.println("Error updating volume");
+    }
+    if (Firebase.RDTB.setBool(&firebaseDatabase.fbdo, firebaseDatabase.coolingPath,
+                              variables.needsCooling)) {
+      Serial.println("Cooling Updated");
+    } else {
+      Serial.println("Error updating cooling");
+    }
   }
 }

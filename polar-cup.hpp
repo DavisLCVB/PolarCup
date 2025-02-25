@@ -1,13 +1,12 @@
 #ifndef POLAR_CUP_HPP
 #define POLAR_CUP_HPP
-#include <HX711.h>
 #include <Adafruit_MLX90614.h>
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <ESPAsyncWebServer.h>
+#include <Firebase_ESP_Client.h>
+#include <HX711.h>
 #include <WiFi.h>
 #include <Wire.h>
-#include "SPIFFS.h"
 #include "types.hpp"
 
 struct Variables {
@@ -21,6 +20,10 @@ struct Variables {
   bool needsCooling{false};
   const c8* ssid{"Davis"};
   const c8* password{"12345678"};
+  const c8* databaseUrl{"https://cooler-5a7a4-default-rtdb.firebaseio.com"};
+  const c8* apiKey{"AIzaSyD0BxAdYvrRWcY0_laAxBfWA2nrC1i8gN8"};
+  const c8* deviceId{"wawita20"};
+  const c8* basePath{"devices/"};
 };
 
 class TemperatureSensor {
@@ -64,15 +67,20 @@ class FreezeSystem {
   Variables* variables;
 };
 
-class WebServer {
+class FirebaseDatabase {
  public:
-  WebServer() = default;
+  FirebaseDatabase() = default;
   void setup(Variables* variables);
+  u64 sendDataPrevMillis = 0;
+  FirebaseData fbdo;
+  c8* temperaturePath;
+  c8* coolingPath;
+  c8* volumePath;
+  bool singupOk = false;
 
  private:
-  void initSPIFFS();
-  void initWiFi();
-  AsyncWebServer server = AsyncWebServer(80);
+  FirebaseAuth auth;
+  FirebaseConfig config;
   Variables* variables;
 };
 
@@ -86,7 +94,7 @@ class PolarCup {
   TemperatureSensor temperatureSensor;
   WeightSensor weightSensor;
   FreezeSystem freezeSystem;
-  WebServer webServer;
+  FirebaseDatabase firebaseDatabase;
   Variables variables;
 };
 
