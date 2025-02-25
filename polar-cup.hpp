@@ -20,10 +20,10 @@ struct Variables {
   bool needsCooling{false};
   const c8* ssid{"Davis"};
   const c8* password{"12345678"};
-  const c8* databaseUrl{"https://cooler-5a7a4-default-rtdb.firebaseio.com"};
-  const c8* apiKey{"AIzaSyD0BxAdYvrRWcY0_laAxBfWA2nrC1i8gN8"};
-  const c8* deviceId{"wawita20"};
-  const c8* basePath{"devices/"};
+  const c8* databaseUrl{"[]"};
+  const c8* apiKey{"[]"};
+  const c8* deviceId{"[]"};
+  const c8* basePath{"[]"};
 };
 
 class TemperatureSensor {
