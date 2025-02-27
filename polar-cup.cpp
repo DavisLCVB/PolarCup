@@ -188,12 +188,12 @@ void MQTTServer::sendData()
 {
   if (millis() - sendDataPrevMillis > 5000)
   {
-    std::string payload = "{" 
-                          "\"deviceId\": \"" + std::string(this->variables->deviceId) + "\", "
-                          "\"volume\": " + std::to_string(this->variables->volume) + ", "
-                          "\"temperature\": " + std::to_string(this->variables->liqTemp) + ", "
-                          "\"cooling\": " + std::to_string(this->variables->needsCooling) +
-                          "}";
+    std::string payload = "{"
+    "\"deviceId\": \"" + std::string(this->variables->deviceId) + "\", "
+    "\"volume\": " + (std::isnan(this->variables->volume) ? "null" : std::to_string(this->variables->volume)) + ", "
+    "\"temperature\": " + (std::isnan(this->variables->liqTemp) ? "null" : std::to_string(this->variables->liqTemp)) + ", "
+    "\"cooling\": " + (std::isnan(this->variables->needsCooling) ? "null" : std::to_string(this->variables->needsCooling)) +
+    "}";
     client.publish(this->variables->topic, payload.c_str());
     Serial.println("📡 Datos enviados al servidor MQTT:");
     Serial.println(payload.c_str());
