@@ -3,10 +3,10 @@
 #include <Adafruit_MLX90614.h>
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <Firebase_ESP_Client.h>
 #include <HX711.h>
 #include <WiFi.h>
 #include <Wire.h>
+#include <PubSubClient.h>
 #include "types.hpp"
 
 #include <algorithm>
@@ -24,10 +24,10 @@ struct Variables {
   bool needsCooling{false};
   const c8* ssid{"Davis"};
   const c8* password{"12345678"};
-  const c8* databaseUrl{"[]"};
-  const c8* apiKey{"[]"};
   const c8* deviceId{"[]"};
-  const c8* basePath{"[]"};
+  const c8* mqtt_server{"[]"};
+  const c8* topic{"[]"};
+  const i8 mqtt_port{};
 };
 
 class MedianFilter {
@@ -87,20 +87,17 @@ class FreezeSystem {
   Variables* variables;
 };
 
-class FirebaseDatabase {
+class MQTTServer {
  public:
-  FirebaseDatabase() = default;
+  MQTTServer() = default;
   void setup(Variables* variables);
   u64 sendDataPrevMillis = 0;
-  FirebaseData fbdo;
-  c8* temperaturePath;
-  c8* coolingPath;
-  c8* volumePath;
-  bool singupOk = false;
+  WiFiClient espClient;
+  PubSubClient client{espClient};
+  void sendData();
+  void reconect();
 
  private:
-  FirebaseAuth auth;
-  FirebaseConfig config;
   Variables* variables;
 };
 
@@ -114,7 +111,7 @@ class PolarCup {
   TemperatureSensor temperatureSensor;
   WeightSensor weightSensor;
   FreezeSystem freezeSystem;
-  FirebaseDatabase firebaseDatabase;
+  MQTTServer mqttServer;
   Variables variables;
 };
 
