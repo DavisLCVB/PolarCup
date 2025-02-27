@@ -151,6 +151,18 @@ void FreezeSystem::switchFreeze(bool state)
 void MQTTServer::setup(Variables *variables)
 {
   this->variables = variables;
+
+  WiFi.begin(this->variables->ssid, this->variables->password);
+  Serial.print("Connecting to Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(300);
+  }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
   client.setServer(this->variables->mqtt_server, this->variables->mqtt_port);
 }
 
