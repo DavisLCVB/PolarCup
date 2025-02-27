@@ -1,14 +1,18 @@
 #ifndef POLAR_CUP_HPP
 #define POLAR_CUP_HPP
-#include <HX711.h>
 #include <Adafruit_MLX90614.h>
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <ESPAsyncWebServer.h>
+#include <HX711.h>
 #include <WiFi.h>
 #include <Wire.h>
 #include "SPIFFS.h"
 #include "types.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <numeric>
 
 struct Variables {
   f32 optTemp{25.0};
@@ -21,6 +25,21 @@ struct Variables {
   bool needsCooling{false};
   const c8* ssid{"Davis"};
   const c8* password{"12345678"};
+};
+
+class MedianFilter {
+ public:
+  MedianFilter(int size, f32 threshold);
+  f32 filter(f32 measurement);
+
+ private:
+  int bufferSize;
+  vec<f32> buffer;
+  int bufferIndex;
+  f32 changeThreshold;
+  bool isBufferInitialized{false};
+  f32 computeStandardDeviation();
+  f32 calculateMedian();
 };
 
 class TemperatureSensor {
@@ -49,6 +68,7 @@ class WeightSensor {
   u8 doutPin = 4;
   u8 sckPin = 5;
   HX711 scale;
+  MedianFilter filter = MedianFilter(5, 100.0);
   Variables* variables;
 };
 

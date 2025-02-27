@@ -2,6 +2,7 @@
 #define TYPES_HPP
 
 #include <cstdint>
+#include <vector>
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -19,5 +20,8 @@ using f64 = double;
 using c8 = char;
 using c16 = wchar_t;
 using c32 = char32_t;
+
+template <typename T>
+using vec = std::vector<T>;
 
 #endif
