@@ -27,7 +27,7 @@ struct Variables {
   const c8* deviceId{"[]"};
   const c8* mqtt_server{"[]"};
   const c8* topic{"[]"};
-  const i8 mqtt_port{};
+  const int mqtt_port{};
 };
 
 class MedianFilter {
