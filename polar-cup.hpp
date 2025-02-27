@@ -9,6 +9,10 @@
 #include <Wire.h>
 #include "types.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+
 struct Variables {
   f32 optTemp{25.0};
   f32 efficiency{0.5};
@@ -24,6 +28,21 @@ struct Variables {
   const c8* apiKey{"[]"};
   const c8* deviceId{"[]"};
   const c8* basePath{"[]"};
+};
+
+class MedianFilter {
+ public:
+  MedianFilter(int size, f32 threshold);
+  f32 filter(f32 measurement);
+
+ private:
+  int bufferSize;
+  vec<f32> buffer;
+  int bufferIndex;
+  f32 changeThreshold;
+  bool isBufferInitialized{false};
+  f32 computeStandardDeviation();
+  f32 calculateMedian();
 };
 
 class TemperatureSensor {
@@ -52,6 +71,7 @@ class WeightSensor {
   u8 doutPin = 4;
   u8 sckPin = 5;
   HX711 scale;
+  MedianFilter filter = MedianFilter(5, 100.0);
   Variables* variables;
 };
 

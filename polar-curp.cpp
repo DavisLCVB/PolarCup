@@ -1,5 +1,56 @@
 #include "polar-cup.hpp"
 
+MedianFilter::MedianFilter(int size, f32 threshold)
+    : bufferSize(size), buffer(size, 0), bufferIndex(0), changeThreshold(threshold) {}
+
+f32 MedianFilter::computeStandardDeviation() {
+  f32 mean = std::accumulate(buffer.begin(), buffer.end(), 0.0) / bufferSize;
+  f32 variance = 0.0;
+  for (f32 val : buffer) {
+    variance += std::pow(val - mean, 2);
+  }
+  variance /= bufferSize;
+  return std::sqrt(variance);
+}
+
+f32 MedianFilter::filter(f32 measurement) {
+  f32 dynamicThreshold = computeStandardDeviation() * changeThreshold;
+
+  if (!isBufferInitialized) {
+    Serial.println("Inicializando buffer...");
+    std::fill(buffer.begin(), buffer.end(), measurement);
+    isBufferInitialized = true;
+
+  } else {
+    if (bufferIndex > 0 &&
+        std::abs(measurement - buffer[(bufferIndex - 1 + bufferSize) % bufferSize]) >
+            dynamicThreshold) {
+
+      measurement = buffer[(bufferIndex - 1 + bufferSize) % bufferSize];
+    }
+
+    buffer[bufferIndex] = measurement;
+    bufferIndex = (bufferIndex + 1) % bufferSize;
+  }
+
+  return calculateMedian();
+}
+
+float MedianFilter::calculateMedian() {
+  f32 median = 0;
+  vec<f32> tempBuffer(buffer);
+  if (bufferSize % 2 == 1) {
+    std::nth_element(tempBuffer.begin(), tempBuffer.begin() + bufferSize / 2, tempBuffer.end());
+    median = tempBuffer[bufferSize / 2];
+  } else {
+    std::sort(tempBuffer.begin(), tempBuffer.end());
+    int mid = bufferSize / 2;
+    median = (tempBuffer[mid - 1] + tempBuffer[mid]) / 2.0f;
+  }
+
+  return median;
+}
+
 void TemperatureSensor::setup(Variables* variables) {
   this->variables = variables;
   if (!mlx.begin()) {
@@ -30,7 +81,10 @@ void WeightSensor::setup(Variables* variables) {
 }
 
 f32 WeightSensor::getWeight() {
-  return scale.get_units(10);
+
+  f32 weight = scale.get_units(10);
+
+  return filter.filter(weight);
 }
 
 f32 WeightSensor::getVolume() {
