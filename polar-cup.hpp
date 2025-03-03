@@ -22,12 +22,13 @@ struct Variables {
   f32 time{0.0};
   f32 calWeigth{213.0};
   bool needsCooling{false};
-  const c8* ssid{"Davis"};
-  const c8* password{"12345678"};
-  const c8* deviceId{"[]"};
-  const c8* mqtt_server{"[]"};
-  const c8* topic{"[]"};
-  const int mqtt_port{};
+  const c8* ssid{""};
+  const c8* password{""};
+  const c8* deviceId{""};
+  const c8* mqtt_server{""};
+  const c8* realTimeTopic{""};
+  const c8* historyTopic{""};
+  const int mqtt_port{10671};
 };
 
 class MedianFilter {
@@ -92,9 +93,11 @@ class MQTTServer {
   MQTTServer() = default;
   void setup(Variables* variables);
   u64 sendDataPrevMillis = 0;
+  u64 saveDataPrevMillis = 0;
   WiFiClient espClient;
   PubSubClient client{espClient};
   void sendData();
+  void saveHistory();
   void reconect();
 
  private:

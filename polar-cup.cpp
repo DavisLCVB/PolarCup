@@ -194,8 +194,25 @@ void MQTTServer::sendData()
     "\"temperature\": " + (std::isnan(this->variables->liqTemp) ? "null" : std::to_string(this->variables->liqTemp)) + ", "
     "\"cooling\": " + (std::isnan(this->variables->needsCooling) ? "null" : std::to_string(this->variables->needsCooling)) +
     "}";
-    client.publish(this->variables->topic, payload.c_str());
-    Serial.println("📡 Datos enviados al servidor MQTT:");
+    client.publish(this->variables->realTimeTopic, payload.c_str());
+    Serial.println("Datos en tiempo real enviados al servidor MQTT:");
+    Serial.println(payload.c_str());
+  }
+}
+
+void MQTTServer::saveHistory()
+{
+  if (millis() - saveDataPrevMillis > 60000)
+  {
+    saveDataPrevMillis = millis();
+    std::string payload = "{"
+    "\"deviceId\": \"" + std::string(this->variables->deviceId) + "\", "
+    "\"volume\": " + (std::isnan(this->variables->volume) ? "null" : std::to_string(this->variables->volume)) + ", "
+    "\"temperature\": " + (std::isnan(this->variables->liqTemp) ? "null" : std::to_string(this->variables->liqTemp)) + ", "
+    "\"cooling\": " + (std::isnan(this->variables->needsCooling) ? "null" : std::to_string(this->variables->needsCooling)) +
+    "}";
+    client.publish(this->variables->historyTopic, payload.c_str());
+    Serial.println("Datos historicos enviados al servidor MQTT");
     Serial.println(payload.c_str());
   }
 }
@@ -235,5 +252,6 @@ void PolarCup::loop()
   }
 
   mqttServer.sendData();
-  delay(5000);
+  mqttServer.saveHistory();
+  delay(1000);
 }
